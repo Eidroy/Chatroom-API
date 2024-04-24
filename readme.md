@@ -2,6 +2,8 @@
 
 > This is a API for a Messaging platform
 
+https://lockerroom-7dd0015188c2.herokuapp.com/
+
 ### List of endpoints
 
 Here is an example of the endpoints you could implement.
