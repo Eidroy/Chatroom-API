@@ -3,16 +3,19 @@ import bcrypt from "bcrypt";
 import JWT from "jsonwebtoken";
 import dotenv from "dotenv";
 import { promisify } from "util";
-import mariadb from "mariadb";
 import { RateLimiterMemory } from "rate-limiter-flexible";
+import pkg from "pg";
+const { Client } = pkg;
 
-const pool = mariadb.createPool({
-  database: "Lockerroom",
-  host: "localhost",
-  user: "root",
-  password: "Marieke3005",
-  connectionLimit: 1,
+const client = new Client({
+  connectionString:
+    "postgres://u87su4rdj4g3ne:pb8f5b907bde55ddfdf5f1d00589068c2f1ab88017c9ef96f90243720747fa119@cb4l59cdg4fg1k.cluster-czrs8kj4isg7.us-east-1.rds.amazonaws.com:5432/d2l4jkbrhusvjf",
+  ssl: {
+    rejectUnauthorized: false,
+  },
 });
+
+client.connect();
 
 dotenv.config();
 
@@ -33,13 +36,14 @@ router.post("/register", async (req, res) => {
   }
   try {
     const encryptedPassword = await bcrypt.hash(password, 10);
-    await pool.query(
-      `INSERT INTO User (user_email, user_password, user_name) VALUES ("${email}", "${encryptedPassword}", "${nickname}")`
+    await client.query(
+      'INSERT INTO "users" (user_email, user_password, user_name) VALUES ($1, $2, $3)',
+      [email, encryptedPassword, nickname]
     );
-    return res.send({ info: "User successfully created" });
+    return res.send({ info: `User ${nickname} successfully created` });
   } catch (err) {
     console.log(err);
-    return res.status(500).send({ error: "Internal server error" });
+    return res.status(500).send({ error: `${err}` });
   }
 });
 
@@ -54,17 +58,18 @@ router.post("/login", async (req, res) => {
     // Check if IP address is being rate limited
     await limiter.consume(req.ip);
 
-    const [rows] = await pool.query(
-      `SELECT * FROM User WHERE user_email = "${email}"`
+    const { rows } = await client.query(
+      'SELECT * FROM "users" WHERE user_email = $1',
+      [email]
     );
 
     if (rows.length === 0) {
       return res.status(401).send({ error: "Invalid credentials" });
     }
 
-    const id = rows.user_id;
-    const nickname = rows.user_name;
-    const hashedPassword = rows.user_password;
+    const id = rows[0].user_id;
+    const nickname = rows[0].user_name;
+    const hashedPassword = rows[0].user_password;
     const isPasswordValid = await bcrypt.compare(password, hashedPassword);
 
     if (!isPasswordValid) {

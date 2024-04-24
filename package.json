@@ -2,19 +2,21 @@
   "name": "20-backend-203-express-advanced-eidroy",
   "version": "1.0.0",
   "description": "- Repository: `lokkeroom` - Type of Challenge: `Consolidation` - Duration: `5 days` - Deployment strategy : `Heroku` - Team challenge : `solo`",
-  "main": "index.js",
+  "main": "app.mjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.mjs"
   },
   "keywords": [],
-  "author": "",
+  "author": "Eidroy",
   "license": "ISC",
   "dependencies": {
     "bcrypt": "^5.1.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",
-    "mariadb": "^3.3.0",
+    "nodemon": "^3.1.0",
+    "pg": "^8.11.5",
     "rate-limiter-flexible": "^5.0.0"
   }
 }
