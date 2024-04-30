@@ -5,10 +5,13 @@ import lobbyRoutes from "./routes/lobbyroute.mjs";
 import messageRoutes from "./routes/messageroute.mjs";
 import userroutes from "./routes/userroute.mjs";
 import pageroutes from "./routes/pageroute.mjs";
+import cors from "cors";
 
 dotenv.config();
 
 const server = express();
+
+server.use(cors());
 
 server.use(express.json());
 

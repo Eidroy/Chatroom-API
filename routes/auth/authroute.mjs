@@ -79,7 +79,7 @@ router.post("/login", async (req, res) => {
     }
 
     const token = await sign({ id, nickname }, process.env.JWT_SECRET);
-    return res.send({ token });
+    return res.send({ id, token });
   } catch (err) {
     console.log(err);
     return res.status(500).send({ error: "Internal server error" });

@@ -18,16 +18,12 @@ dotenv.config();
 const router = express.Router();
 
 //get users from a lobby
-router.get("/", async (req, res) => {
-  const { nickname } = req.body;
-  const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
-    nickname,
-  ]);
-  const userId = user.rows[0].user_id;
+router.get("/:lobbyid", async (req, res) => {
+  const lobbyId = req.params.lobbyid;
   try {
     const result = await client.query(
-      `SELECT team_id FROM teammembers WHERE user_id = $1`,
-      [userId]
+      `SELECT team_id FROM team WHERE team_lobby_id = $1`,
+      [lobbyId]
     );
     const teamId = result.rows[0].team_id;
     const rows2 = await client.query(
@@ -38,7 +34,6 @@ router.get("/", async (req, res) => {
     for (let i = 0; i < rows2.rows.length; i++) {
       ids.push(rows2.rows[i].user_id);
     }
-    console.log(ids);
     const rows3 = await client.query(
       `SELECT * FROM users WHERE user_id = ANY($1)`,
       [ids]
@@ -51,13 +46,8 @@ router.get("/", async (req, res) => {
 });
 
 //Get a single user by id if admin , if no admin can only get details from people that are in the same lobby
-router.get("/:userId", async (req, res) => {
-  const userId = req.params.userId;
-  const { nickname } = req.body;
-  const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
-    nickname,
-  ]);
-  const userIdFromReq = user.rows[0].user_id;
+router.get("/search/:userId", async (req, res) => {
+  const userIdFromReq = req.params.userId;
   const team = await client.query(
     `SELECT * FROM teammembers WHERE user_id = $1`,
     [userIdFromReq]
@@ -88,6 +78,7 @@ router.get("/:userId", async (req, res) => {
       `SELECT * FROM users WHERE user_id = ANY($1) AND user_id = $2`,
       [userIds, userIdFromReq]
     );
+
     return res.send(rows.rows);
   }
 });

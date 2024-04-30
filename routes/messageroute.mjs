@@ -19,12 +19,9 @@ const router = express.Router();
 
 // Edit message endpoint
 router.patch("/:messageId", async (req, res) => {
-  const { nickname, message } = req.body;
+  const { id, message } = req.body;
   const message_id = req.params.messageId;
-  const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
-    nickname,
-  ]);
-  const userId = user.rows[0].user_id;
+  const userId = id;
   const messageinfo = await client.query(
     `SELECT * FROM message WHERE message_id = $1`,
     [message_id]
@@ -34,6 +31,7 @@ router.patch("/:messageId", async (req, res) => {
   ]);
   const adminId = lobby.rows[0].admin_id;
   const messageId = req.params.messageId;
+  const messageowner = messageinfo.rows[0].user_id;
   if (!message) {
     return res.status(400).send({ error: "Invalid request" });
   }
@@ -42,16 +40,15 @@ router.patch("/:messageId", async (req, res) => {
       `SELECT * FROM message WHERE message_id = $1 AND user_id = $2`,
       [messageId, userId]
     );
-    if (rows.length === 0 || userId !== adminId) {
-      return res
-        .status(403)
-        .send({ error: "You are not authorized to edit this message" });
-    } else if (userId === adminId || userId === messageinfo.rows[0].user_id) {
+    if (userId == adminId || userId == messageowner) {
       await client.query(
         `UPDATE message SET message_content = $1 WHERE message_id = $2`,
         [message, messageId]
       );
-    }
+    } else
+      return res
+        .status(403)
+        .send({ error: "You are not authorized to edit this message" });
     await client.query(
       `UPDATE message SET message_content = $1 WHERE message_id = $2`,
       [message, messageId]
@@ -65,17 +62,16 @@ router.patch("/:messageId", async (req, res) => {
 
 // Delete message endpoint
 router.delete("/:messageId", async (req, res) => {
-  const { nickname } = req.body;
-  const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
-    nickname,
-  ]);
-  const userId = user.rows[0].user_id;
+  const { id } = req.body;
+
+  const userId = id;
   const messageId = req.params.messageId;
   try {
     const { rows } = await client.query(
-      `SELECT * FROM message WHERE message_id = $1 AND user_id = $2`,
-      [messageId, userId]
+      `SELECT * FROM message WHERE message_id = $1`,
+      [messageId]
     );
+
     const lobbyId = rows[0].lobby_id;
     const lobby = await client.query(
       `SELECT * FROM lobby WHERE lobby_id = $1`,
@@ -86,7 +82,7 @@ router.delete("/:messageId", async (req, res) => {
       return res
         .status(403)
         .send({ error: "You are not authorized to delete this message" });
-    } else if (userId === adminId) {
+    } else if (userId === adminId || userId === rows[0].user_id) {
       await client.query(`DELETE FROM message WHERE message_id = $1`, [
         messageId,
       ]);
@@ -103,14 +99,14 @@ router.delete("/:messageId", async (req, res) => {
 
 // Send a Private Message
 router.post("/private-message", async (req, res) => {
-  const { nickname, recipient, message } = req.body;
+  const { username, reciever_username, message } = req.body;
   const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
-    nickname,
+    username,
   ]);
   const userId = user.rows[0].user_id;
   const recipientUser = await client.query(
     `SELECT * FROM users WHERE user_name = $1`,
-    [recipient]
+    [reciever_username]
   );
   const recipientId = recipientUser.rows[0].user_id;
   if (!message) {
@@ -135,14 +131,18 @@ router.post("/private-message", async (req, res) => {
 
 //show all private messages
 router.get("/private-message", async (req, res) => {
-  const { nickname } = req.body;
+  const { username } = req.headers;
   const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
-    nickname,
+    username,
   ]);
   const userId = user.rows[0].user_id;
   try {
     const { rows } = await client.query(
-      `SELECT * FROM pms WHERE sender_id = $1 OR reciever_id = $1`,
+      `SELECT pms.*, sender.user_name as sender_username, reciever.user_name as reciever_username 
+      FROM pms 
+      INNER JOIN users as sender ON pms.sender_id = sender.user_id 
+      INNER JOIN users as reciever ON pms.reciever_id = reciever.user_id 
+      WHERE sender_id = $1 OR reciever_id = $1`,
       [userId]
     );
     return res.send(rows);

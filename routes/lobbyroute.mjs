@@ -17,9 +17,43 @@ dotenv.config();
 
 export const router = express.Router();
 
+//Route to get all lobbies ids a user is in
+router.get("/:userId", async (req, res) => {
+  const userId = req.params.userId;
+  try {
+    const team = await client.query(
+      `SELECT * FROM teammembers WHERE user_id = $1`,
+      [userId]
+    );
+    const info = [];
+    for (let i = 0; i < team.rows.length; i++) {
+      const teamId = team.rows[i].team_id;
+      const lobby = await client.query(
+        `SELECT * FROM team WHERE team_id = $1`,
+        [teamId]
+      );
+      const userName = await client.query(
+        `SELECT * FROM users WHERE user_id = $1`,
+        [userId]
+      );
+      lobby.rows.forEach((row) => {
+        info.push({
+          teamName: row.team_name,
+          teamId: row.team_lobby_id,
+          userName: userName.rows[0].user_name,
+        });
+      });
+    }
+    return res.send(info);
+  } catch (err) {
+    console.log(err);
+    return res.status(500).send({ error: "Internal server error" });
+  }
+});
+
 //Route to create a lobby
 router.post("/", async (req, res) => {
-  const { nickname, Teamname } = req.body;
+  const { Teamname, nickname } = req.body;
   if (!nickname) {
     return res.status(400).send({ error: "Invalid request" });
   }
@@ -58,14 +92,14 @@ router.post("/", async (req, res) => {
 });
 
 // Get messages from a lobby endpoint
-router.get("/:lobbyId", async (req, res) => {
+router.get("/info/:lobbyId", async (req, res) => {
   const lobbyId = req.params.lobbyId;
   try {
-    const rows = await client.query(
+    const messages = await client.query(
       `SELECT * FROM message WHERE lobby_id = $1`,
       [lobbyId]
     );
-    return res.send(rows.rows);
+    return res.send(messages);
   } catch (err) {
     console.log(err);
     return res.status(500).send({ error: "Internal server error" });
@@ -91,20 +125,9 @@ router.get("/:lobbyId/:messageId", async (req, res) => {
 
 // Post message to a lobby endpoint
 router.post("/:lobbyId", async (req, res) => {
-  const { nickname, message } = req.body;
-  const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
-    nickname,
-  ]);
-  const userId = user.rows[0].user_id;
-  const team = await client.query(
-    `SELECT * FROM teammembers WHERE user_id = $1`,
-    [userId]
-  );
-  const teamId = team.rows[0].team_id;
-  const lobby = await client.query(`SELECT * FROM team WHERE team_id = $1`, [
-    teamId,
-  ]);
-  const lobbyId = lobby.rows[0].team_lobby_id;
+  const { id, message } = req.body;
+  const lobbyId = req.params.lobbyId;
+  const userId = id;
   if (!message) {
     return res.status(400).send({ error: "Invalid request" });
   }
@@ -122,7 +145,7 @@ router.post("/:lobbyId", async (req, res) => {
 
 //add user to lobby as admin
 router.post("/:lobbyId/add-user", async (req, res) => {
-  const { personToAdd, nickname } = req.body;
+  const { personToAdd, username } = req.body;
   const lobbyId = req.params.lobbyId;
   const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
     personToAdd,
@@ -130,7 +153,7 @@ router.post("/:lobbyId/add-user", async (req, res) => {
   const userId = user.rows[0].user_id;
   const adminUser = await client.query(
     `SELECT * FROM users WHERE user_name = $1`,
-    [nickname]
+    [username]
   );
   const adminId = adminUser.rows[0].user_id;
   const lobbyAdmin = await client.query(
@@ -163,7 +186,7 @@ router.post("/:lobbyId/add-user", async (req, res) => {
 
 //remove user from lobby
 router.post("/:lobbyId/remove-user", async (req, res) => {
-  const { personToRemove, nickname } = req.body;
+  const { personToRemove, username } = req.body;
   const lobbyId = req.params.lobbyId;
   const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
     personToRemove,
@@ -171,7 +194,7 @@ router.post("/:lobbyId/remove-user", async (req, res) => {
   const userId = user.rows[0].user_id;
   const adminUser = await client.query(
     `SELECT * FROM users WHERE user_name = $1`,
-    [nickname]
+    [username]
   );
   const adminId = adminUser.rows[0].user_id;
   const lobbyAdmin = await client.query(

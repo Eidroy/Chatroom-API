@@ -429,7 +429,7 @@ server.post("/private-message", async (req, res) => {
     .slice(0, 19)
     .replace("T", " ");
   await pool.query(
-    `INSERT INTO PMS (sender_id, receiver_id, message, created_at) VALUES (${userId}, ${recipientId}, "${message}", "${formattedTimestamp}")`
+    `INSERT INTO pms (sender_id, receiver_id, message, created_at) VALUES (${userId}, ${recipientId}, "${message}", "${formattedTimestamp}")`
   );
   try {
     return res.send({ info: "Message sent successfully" });
@@ -448,7 +448,7 @@ server.get("/private-message", async (req, res) => {
   const userId = user[0].user_id;
   try {
     const rows = await pool.query(
-      `SELECT * FROM PMS WHERE sender_id = ${userId} OR receiver_id = ${userId}`
+      `SELECT * FROM pms WHERE sender_id = ${userId} OR receiver_id = ${userId}`
     );
     return res.send(rows);
   } catch (err) {
