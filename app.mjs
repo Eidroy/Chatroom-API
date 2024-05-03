@@ -11,7 +11,24 @@ dotenv.config();
 
 const server = express();
 
-server.use(cors());
+const allowedOrigins = [
+  "https://lockerroomyb.netlify.app",
+  "http://127.0.0.1:5173",
+];
+const corsOptions = {
+  origin: (origin, callback) => {
+    if (!origin || allowedOrigins.includes(origin)) {
+      callback(null, true);
+    } else {
+      callback(new Error("Not allowed by CORS"));
+    }
+  },
+  credentials: true,
+  methods: ["GET", "POST", "DELETE", "PATCH"],
+  allowedHeaders: ["Content-Type", "Authorization", "username"],
+};
+
+server.use(cors(corsOptions));
 
 server.use(express.json());
 

@@ -68,7 +68,7 @@ router.post("/login", async (req, res) => {
     }
 
     const id = rows[0].user_id;
-    const nickname = rows[0].user_name;
+    const username = rows[0].user_name;
     const hashedPassword = rows[0].user_password;
     const isPasswordValid = await bcrypt.compare(password, hashedPassword);
 
@@ -78,8 +78,8 @@ router.post("/login", async (req, res) => {
       return res.status(401).send({ error: "Invalid credentials" });
     }
 
-    const token = await sign({ id, nickname }, process.env.JWT_SECRET);
-    return res.send({ id, token });
+    const token = await sign({ id, username }, process.env.JWT_SECRET);
+    return res.send({ id, token, username });
   } catch (err) {
     console.log(err);
     return res.status(500).send({ error: "Internal server error" });

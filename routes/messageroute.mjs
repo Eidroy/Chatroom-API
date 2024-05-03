@@ -103,6 +103,9 @@ router.post("/private-message", async (req, res) => {
   const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
     username,
   ]);
+  if (user.rows.length == 0) {
+    return res.status(404).send({ error: "User not found" });
+  }
   const userId = user.rows[0].user_id;
   const recipientUser = await client.query(
     `SELECT * FROM users WHERE user_name = $1`,
@@ -135,6 +138,9 @@ router.get("/private-message", async (req, res) => {
   const user = await client.query(`SELECT * FROM users WHERE user_name = $1`, [
     username,
   ]);
+  if (!user.rows[0].user_id === undefined) {
+    return res.status(404).send({ error: "No Private messages" });
+  }
   const userId = user.rows[0].user_id;
   try {
     const { rows } = await client.query(
